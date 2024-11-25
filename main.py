@@ -8,10 +8,11 @@ pygame.init()
 MENU = "menu"
 PLAYING = "playing"
 GAME_OVER = "game_over"
+base_surface = pygame.Surface((WIDTH, HEIGHT))
 
 class Game:
     def __init__(self):
-        self.images = load_images("C:\\Users\\Sanek\\Desktop\\платформер\\images")
+        self.images = load_images("C:\\Users\\Sanek\\Desktop\\платформер\\assets\\images")
         self.images["main_background"] = pygame.transform.scale(
             self.images["main_background"], (WIDTH, HEIGHT)
         )
@@ -20,14 +21,24 @@ class Game:
         )
         self.images["coffee"] = self.images["coffee"]
         self.images["clock"] = self.images["clock"]
+        self.images["main_menu"] = self.images["main_menu"]
+        self.images["lose_screen"] = self.images["lose_screen"]
 
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+        self.base_surface = pygame.Surface((WIDTH, HEIGHT))  # Базовая поверхность для отрисовки
         pygame.display.set_caption("Диванная революция")
         self.clock = pygame.time.Clock()
         self.running = True
         self.state = MENU  # Начальное состояние
         self.score = 0
-        self.player_path = deque(maxlen=100) #Очередь записи маршрута игрока 
+        self.player_path = deque(maxlen=100) #Очередь записи маршрута игрока
+
+    def resize_screen(self, new_width, new_height):
+        """Метод для изменения размеров окна."""
+        self.screen = pygame.display.set_mode((new_width, new_height), pygame.RESIZABLE)
+        self.images["main_background"] = pygame.transform.scale(
+            self.images["main_background"], (new_width, new_height)
+        )
 
     def run(self):
         while self.running:
@@ -42,7 +53,7 @@ class Game:
 
     def show_menu(self):
         # Главный экран
-        self.screen.fill(WHITE)
+        self.screen.blit(self.images["main_menu"], (0, 0))
         font = pygame.font.Font(None, 72)
         title_text = font.render("Диванная революция", True, (0, 0, 0))
         start_text = font.render("Нажмите любую клавишу, чтобы начать", True, (0, 0, 0))
@@ -69,8 +80,6 @@ class Game:
                     Platform(500, HEIGHT - 200, PLATFORM_WIDTH)]
         bonuses = [Coffee(350, HEIGHT - 120, self.images["coffee"], "coffee"),
                 Clock(550, HEIGHT - 220, self.images["clock"], "alarm")]
-        
-        self.couch.move_along_path(list(self.player_path))
 
         safe_timer = 30  # Таймер для безопасного старта
 
@@ -79,6 +88,10 @@ class Game:
             self.screen.blit(self.images["main_background"], (0, 0))
             self.couch.draw(self.screen)
 
+            # Масштабирование и отрисовка фона
+            scaled_surface = pygame.transform.scale(base_surface, self.screen.get_size())
+            self.screen.blit(scaled_surface, (0, 0))
+            
             self.player_path.append({
             "x": player.rect.x,
             "y": player.rect.y,
@@ -101,7 +114,7 @@ class Game:
             player.apply_gravity()
             player.update()
 
-            self.couch.move_towards(player.rect.x)
+            self.couch.move_along_path(self.player_path)
 
             # Проверка столкновений
             player.on_ground = False
@@ -116,7 +129,7 @@ class Game:
                     if bonus.type == "coffee":
                         player.speed += 3
                     elif bonus.type == "alarm":
-                        self.couch.stop(180)
+                        self.couch.stop(10)
                     bonuses.remove(bonus)
 
             # Проверка проигрыша (после таймера безопасного старта)
@@ -154,9 +167,9 @@ class Game:
 
     def show_game_over(self):
         # Экран проигрыша
-        self.screen.fill(WHITE)
+        self.screen.blit(self.images["lose_screen"], (0, 0))
         font = pygame.font.Font(None, 72)
-        game_over_text = font.render("Вы проиграли!", True, (255, 0, 0))
+        game_over_text = font.render("Лень победила!", True, (255, 0, 0))
         restart_text = font.render("Нажмите R, чтобы начать заново", True, (0, 0, 0))
         self.screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 3))
         self.screen.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2))

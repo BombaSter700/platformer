@@ -11,6 +11,8 @@ def load_images(base_path):
             "coffee": pygame.image.load(os.path.join(base_path, "B_coffee.png")),
             "clock": pygame.image.load(os.path.join(base_path, "B_Clock.png")),
             #"office": pygame.image.load(os.path.join(base_path, "Player.png")),
+            "lose_screen": pygame.image.load(os.path.join(base_path, "lose_screen.png")),
+            "main_menu": pygame.image.load(os.path.join(base_path, "main_menu.png")),
             
         }
         return images

@@ -1,5 +1,7 @@
 import pygame
 from settings import *
+from collections import deque
+
 
 class Player:
     def __init__(self, x, y):
@@ -35,29 +37,38 @@ class Couch:
         self.speed = 2
         self.paused = 0
         self.image = image
-        self.path_index = 0  # Индекс для текущего состояния
-
+        self.path_index = 0  # Индекс для отслеживания позиции в пути
+    """ОБРАБОТКА МАРШРУТА ТРЕБУЕТ ДОРАБОТКИ"""
     def move_along_path(self, player_path):
-         if self.path_index < len(player_path):
-            state = player_path[self.path_index]
-            self.rect.x = state["x"]
-            self.rect.y += state["velocity_y"]  # Применяем гравитацию
-            if state["on_ground"]:
-                self.rect.y = state["y"]  # Ставим диван на платформу
-            self.path_index += 1
-            
-    def move_towards(self, target_x):
+        """Движение дивана по маршруту игрока с задержкой."""
         if self.paused > 0:
             self.paused -= 1
-        else:
-            if self.rect.x < target_x - 100:
-                self.rect.x += self.speed
+            return
+
+        if len(player_path) > 30:  # Убедимся, что есть достаточная задержка
+            target_state = player_path[0]  # Берем самую старую позицию
+            target_x, target_y = target_state["x"], target_state["y"]
+
+            # Двигаемся к следующей точке
+            if self.rect.x < target_x:
+                self.rect.x += min(self.speed, target_x - self.rect.x)
+            elif self.rect.x > target_x:
+                self.rect.x -= min(self.speed, self.rect.x - target_x)
+
+            if self.rect.y < target_y:
+                self.rect.y += min(self.speed, target_y - self.rect.y)
+            elif self.rect.y > target_y:
+                self.rect.y -= min(self.speed, self.rect.y - target_y)
+
+            # Удаляем точку из пути, если она достигнута
+            if abs(self.rect.x - target_x) < self.speed and abs(self.rect.y - target_y) < self.speed:
+                player_path.popleft()
 
     def stop(self, duration):
         self.paused = duration
 
     def draw(self, screen):
-        # Отрисовка дивана с использованием его картинки
+        """Отрисовка дивана с использованием его изображения."""
         screen.blit(self.image, (self.rect.x, self.rect.y))
 
 

@@ -1,5 +1,6 @@
 import pygame
 from settings import *
+from collections import deque
 
 pygame.init()
 
@@ -10,12 +11,23 @@ GAME_OVER = "game_over"
 
 class Game:
     def __init__(self):
+        self.images = load_images("C:\\Users\\Sanek\\Desktop\\платформер\\images")
+        self.images["main_background"] = pygame.transform.scale(
+            self.images["main_background"], (WIDTH, HEIGHT)
+        )
+        self.images["couch"] = pygame.transform.scale(
+            self.images["couch"], (DIVAN_WIDTH, DIVAN_HEIGHT)
+        )
+        self.images["coffee"] = self.images["coffee"]
+        self.images["clock"] = self.images["clock"]
+
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Диванная революция")
         self.clock = pygame.time.Clock()
         self.running = True
         self.state = MENU  # Начальное состояние
         self.score = 0
+        self.player_path = deque(maxlen=100) #Очередь записи маршрута игрока 
 
     def run(self):
         while self.running:
@@ -51,17 +63,28 @@ class Game:
     def play_game(self):
         # Создание игрового уровня
         player = Player(100, HEIGHT - PLAYER_HEIGHT - 20)
-        couch = Couch(50, HEIGHT - DIVAN_HEIGHT)  # Начальное положение дивана
+        self.couch = Couch(50, HEIGHT - DIVAN_HEIGHT, self.images["couch"])  # Начальное положение дивана
         platforms = [Platform(0, HEIGHT - 20, WIDTH),
                     Platform(300, HEIGHT - 100, PLATFORM_WIDTH),
                     Platform(500, HEIGHT - 200, PLATFORM_WIDTH)]
-        bonuses = [Bonus(350, HEIGHT - 120, "coffee"),
-                Bonus(550, HEIGHT - 220, "alarm")]
+        bonuses = [Coffee(350, HEIGHT - 120, self.images["coffee"], "coffee"),
+                Clock(550, HEIGHT - 220, self.images["clock"], "alarm")]
+        
+        self.couch.move_along_path(list(self.player_path))
 
         safe_timer = 30  # Таймер для безопасного старта
 
+        """ОСНОВНОЙ ЦИКЛ ИГРЫ"""
         while self.state == PLAYING:
-            self.screen.fill(WHITE)
+            self.screen.blit(self.images["main_background"], (0, 0))
+            self.couch.draw(self.screen)
+
+            self.player_path.append({
+            "x": player.rect.x,
+            "y": player.rect.y,
+            "on_ground": player.on_ground,
+            "velocity_y": player.velocity_y
+            }) #в каждом кадре запись коорд и действий игрока
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -71,13 +94,14 @@ class Game:
                     if event.key == pygame.K_SPACE:
                         player.jump()
 
+
             # Обновление игрока, дивана и уровня
             keys = pygame.key.get_pressed()
             player.move(keys)
             player.apply_gravity()
             player.update()
 
-            couch.move_towards(player.rect.x)
+            self.couch.move_towards(player.rect.x)
 
             # Проверка столкновений
             player.on_ground = False
@@ -92,11 +116,11 @@ class Game:
                     if bonus.type == "coffee":
                         player.speed += 3
                     elif bonus.type == "alarm":
-                        couch.stop(180)
+                        self.couch.stop(180)
                     bonuses.remove(bonus)
 
             # Проверка проигрыша (после таймера безопасного старта)
-            if safe_timer <= 0 and couch.rect.colliderect(player.rect):
+            if safe_timer <= 0 and self.couch.rect.colliderect(player.rect):
                 self.state = GAME_OVER
                 break
             safe_timer -= 1
@@ -107,7 +131,7 @@ class Game:
                     platform.rect.x -= player.velocity_x
                 for bonus in bonuses:
                     bonus.rect.x -= player.velocity_x
-                couch.rect.x -= player.velocity_x
+                self.couch.rect.x -= player.velocity_x
                 player.rect.x = WIDTH // 2 - PLAYER_WIDTH // 2
 
             # Отрисовка объектов
@@ -117,7 +141,6 @@ class Game:
                 bonus.draw(self.screen)
 
             pygame.draw.rect(self.screen, BLUE, player.rect)
-            pygame.draw.rect(self.screen, RED, couch.rect)
 
             # Отображение очков
             font = pygame.font.Font(None, 36)
@@ -148,6 +171,7 @@ class Game:
 
 
 if __name__ == "__main__":
-    from game_objects import Player, Couch, Platform, Bonus
+    from game_objects import Player, Couch, Platform, Coffee, Clock
+    from assets import load_images
     game = Game()
     game.run()

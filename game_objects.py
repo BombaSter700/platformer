@@ -30,11 +30,22 @@ class Player:
 
 
 class Couch:
-    def __init__(self, x, y):
+    def __init__(self, x, y, image):
         self.rect = pygame.Rect(x, y, DIVAN_WIDTH, DIVAN_HEIGHT)
         self.speed = 2
         self.paused = 0
+        self.image = image
+        self.path_index = 0  # Индекс для текущего состояния
 
+    def move_along_path(self, player_path):
+         if self.path_index < len(player_path):
+            state = player_path[self.path_index]
+            self.rect.x = state["x"]
+            self.rect.y += state["velocity_y"]  # Применяем гравитацию
+            if state["on_ground"]:
+                self.rect.y = state["y"]  # Ставим диван на платформу
+            self.path_index += 1
+            
     def move_towards(self, target_x):
         if self.paused > 0:
             self.paused -= 1
@@ -45,6 +56,10 @@ class Couch:
     def stop(self, duration):
         self.paused = duration
 
+    def draw(self, screen):
+        # Отрисовка дивана с использованием его картинки
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+
 
 class Platform:
     def __init__(self, x, y, width):
@@ -54,11 +69,21 @@ class Platform:
         pygame.draw.rect(screen, GREEN, self.rect)
 
 
-class Bonus:
-    def __init__(self, x, y, bonus_type):
-        self.rect = pygame.Rect(x, y, 20, 20)
+class Coffee:
+    def __init__(self, x, y, image, bonus_type):
+        self.rect = pygame.Rect(x, y, 20, 35)
+        self.image = image
         self.type = bonus_type
 
     def draw(self, screen):
-        color = ORANGE if self.type == "coffee" else BLUE
-        pygame.draw.rect(screen, color, self.rect)
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+
+
+class Clock:
+    def __init__(self, x, y, image, bonus_type):
+        self.rect = pygame.Rect(x, y, 30, 30)
+        self.image = image
+        self.type = bonus_type
+
+    def draw(self, screen):
+        screen.blit(self.image, (self.rect.x, self.rect.y))
